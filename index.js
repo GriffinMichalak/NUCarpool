@@ -1,5 +1,10 @@
 const PORT = 3000;
 const express = require('express');
+const User = require('./User');
+const Position = require('./Position');
+const Disruption = require('./Disruption');
+const Time = require('./Time');
+
 const app = express();
 
 const users = [];
@@ -176,7 +181,7 @@ app.get("/v2/recommendations/:name", function (req, res) {
   const recFormats = []; 
   const disruptedUsers = getDisruptedUsers(users, disruptions);
   const name = req.params.name;
-  const user = users.find((user) => user.getName() === name);
+  const user = disruptedUsers.find((user) => user.getName() === name);
 
   if (!user) {
     return res.status(404).json({ error: "User not found" });
@@ -589,14 +594,19 @@ function getDrivers(users) {
     for (let user of users) {
       let isStartLocationDisrupted = false;
       let isEndLocationDisrupted = false;
+
+      let startDisruption = 0;
+      let endDisruption = 0;
   
       // Check if user's start or end location is disrupted
       for (let disruption of disruptions) {
-        if (user.getStartLocation() === disruption.getLocation()) {
+        if (isDisrupted(user.getStartLocation(), disruption)) {
           isStartLocationDisrupted = true;
+          startDisruption = disruption.getDelayTimeInMinutes(); 
         }
-        if (user.getEndLocation() === disruption.getLocation()) {
+        if (isDisrupted(user.getEndLocation(), disruption)) {
           isEndLocationDisrupted = true;
+          endDisruption = disruption.getDelayTimeInMinutes(); 
         }
       }
   
@@ -613,17 +623,13 @@ function getDrivers(users) {
       );
       // Adjust the user's start and end time if their location is disrupted
       if (isStartLocationDisrupted) {
-        let delayTime = disruptions.find(disruption => disruption.getLocation() === user.getStartLocation())
-          .getDelayTimeInMinutes();
-        let adjustedStartTime = addTime(user.getStartHour(), user.getStartMinute(), -delayTime);
+        let adjustedStartTime = addTime(user.getStartHour(), user.getStartMinute(), -1 * startDisruption);
         disruptedUser.setStartHour(adjustedStartTime[0]);
         disruptedUser.setStartMinute(adjustedStartTime[1]);
       }
   
       if (isEndLocationDisrupted) {
-        let delayTime = disruptions.find(disruption => disruption.getLocation() === user.getEndLocation())
-          .getDelayTimeInMinutes();
-        let adjustedEndTime = addTime(user.getEndHour(), user.getEndMinute(), delayTime);
+        let adjustedEndTime = addTime(user.getEndHour(), user.getEndMinute(), endDisruption);
         disruptedUser.setEndHour(adjustedEndTime[0]);
         disruptedUser.setEndMinute(adjustedEndTime[1]);
       }
@@ -662,268 +668,6 @@ function getDrivers(users) {
     return [Math.floor(newHour), newMinute];
   }
   
-  
-// ----------------------------------------------------------------
-
-/**
- * Represents a user object for NUCarpool.
- * A user has a name, start location, end location, start hour, start minute, end hour, end minute, and a role.
- */
-class User {
-  #name;
-  #startLocation;
-  #endLocation;
-  #startHour;
-  #startMinute;
-  #endHour;
-  #endMinute;
-  #role;
-
-  /**
-   * The constructor for the User class. 
-   * @param {String} name the name of this User. 
-   * @param {Position} startLocation the start location of this User.
-   * @param {Position} endLocation the end location of this User.
-   * @param {number} startHour the start time's hour portion for this User.
-   * @param {number} startMinute the start time's minute portion for this User.
-   * @param {number} endHour the end times's time portion for this User. 
-   * @param {number} endMinute the end time's minute portion for this User.
-   * @param {Role} role the role for this User (either Rider or Driver).
-   */
-  constructor(name, startLocation, endLocation, startHour, startMinute, endHour, endMinute, role) {
-    this.#name = name;
-    this.#startLocation = startLocation;
-    this.#endLocation = endLocation; 
-    this.#startHour = startHour;
-    this.#startMinute = startMinute;
-    this.#endHour = endHour;
-    this.#endMinute = endMinute;
-    this.#role = role; 
-  }
-
-  /**
-   * Gets the name of this User.
-   * @returns {String} the name of this User. 
-   */
-  getName() {
-    return this.#name;
-  }
-
-  /**
-   * Gets the start location of this User.
-   * @returns {Position} the start location of this User.
-   */
-  getStartLocation() {
-    return this.#startLocation;
-  }
-
-  /**
-   * Gets the end location of this User.
-   * @returns {Position} the end location of this User.
-   */
-  getEndLocation() {
-    return this.#endLocation;
-  }
-
-  /**
-   * Gets the hour portion of this User's start time.
-   * @returns {number} the start hour of this User.
-   */
-  getStartHour() {
-    return this.#startHour; 
-  }
-
-  /**
-   * Gets the minute portion of this User's start time.
-   * @returns {number} the start minute of this User.
-   */
-  getStartMinute() {
-    return this.#startMinute;
-  }
-
-  /**
-   * Gets the hour portion of this User's end time.
-   * @returns {number} the end hour of this User.
-   */
-  getEndHour() {
-    return this.#endHour;
-  }
-
-  /**
-   * Gets the minute portion of this User's end time.
-   * @returns {number} the end minute of this User.
-   */
-  getEndMinute() {
-    return this.#endMinute;
-  }
-
-  /**
-   * Gets the role object of this User. 
-   * @returns {Role} the role of this User. 
-   */
-  getRole() {
-    return this.#role; 
-  }
-
-  /**
-   * Sets the name of this User to the one specified. 
-   * @param {String} name the name to assign to this User. 
-   */
-  setName(name) {
-    this.#name = name;
-  }
-
-  /**
-   * Sets the start location of this User to the one specified. 
-   * @param {Position} startLocation  the start location to assign to this User.
-   */
-  setStartLocation(startLocation) {
-    this.#startLocation = startLocation;
-  }
-
-  /**
-   * Sets the end location of this User to the one specified. 
-   * @param {Position} endLocation the end location to assign to this User.
-   */
-  setEndLocation(endLocation) {
-    this.#endLocation = endLocation;
-  }
-
-  /**
-   * Sets the start hour of this User to the one specified. 
-   * @param {number} startHour the start hour to assign to this User.
-   */
-  setStartHour(startHour) {
-    this.#startHour = startHour;
-  }
-
-  /**
-   * Sets the end minute of this User to the one specified.
-   * @param {number} startMinute the start minute to assign to this User.
-   */
-  setStartMinute(startMinute) {
-    this.#startMinute = startMinute;
-  }
-
-  /**
-   * Sets the end hour of this User to the one specified.
-   * @param {number} endHour the end hour to assign to this User.
-   */
-  setEndHour(endHour) {
-    this.#endHour = endHour;
-  }
-
-  /**
-   * Sets the end minute of this User to the one specified.
-   * @param {number} endMinute the end minute to assign to this User. 
-   */
-  setEndMinute(endMinute) {
-    this.#endMinute = endMinute;
-  }
-
-  /**
-   * Sets the role of this User to the one specified. 
-   * @param {Role} role the Role to assign to this User. 
-   */
-  setRole(role) {
-    this.#role = role;
-  }
-
-  /**
-   * Displays all information in the User class as a formatted String. 
-   * @returns {String} the formatted data of this class. 
-   */
-  toString() {
-    let startHourFormat = "" + this.#startHour;
-    let startMinuteFormat = "" + this.#startMinute;
-    let endHourFormat = "" + this.#endHour;
-    let endMinuteFormat = "" + this.#endMinute; 
-
-    if(this.#startHour < 10) {
-      startHourFormat = "0" + this.#startHour; 
-    }
-
-    if(this.#startMinute < 10) {
-      startMinuteFormat = "0" + this.#startMinute; 
-    }
-
-    if(this.#endHour < 10) {
-      endHourFormat = "0" + this.#endHour; 
-    }
-
-    if(this.#endMinute < 10) {
-      endMinuteFormat = "0" + this.#endMinute; 
-    }
-
-    
-    return ("Name: " + this.#name + " ~ " + 
-    "Start Location: " + this.#startLocation.toString() + " ~ " + 
-    "End Location: " + this.#endLocation.toString() + " ~ " + 
-    "Start Time: " + startHourFormat + ":" + startMinuteFormat + " ~ " +
-    "End Time: " + endHourFormat + ":" + endMinuteFormat + " ~ " +
-    "Role: " + this.#role
-    );
-  }
-}
-
-// -------------------------------------------------------------------
-
-/**
- * Represents a Position object. A Position has an x-coordinate and a y-coordinate.
- */
-class Position {
-  #x
-  #y
-
-  /**
-   * 
-   * @param {number} x the x-coordinate of this Position.
-   * @param {number} y the y-coordinate of this Position.
-   */
-  constructor(x, y) {
-    this.#x = x;
-    this.#y = y;
-  }
-
-  /**
-   * Calculates the distance between this position and another position. 
-   * @param {Position} anotherPosition 
-   * @returns {number} distance between this position the other position. 
-   */
-  distanceBetween(anotherPosition) {
-    return Math.sqrt(
-      Math.pow(this.#x - anotherPosition.getX(), 2) +
-      Math.pow(this.#y - anotherPosition.getY(), 2)
-    );
-  }
-
-  /**
-   * Gets the x-value of this Position. 
-   * @returns {number} the x-coordinate of this Position. 
-   */
-  getX() {
-    return this.#x;
-  }
-
-  /**
-   * Gets the y-value of this Position.
-   * @returns {number} the y-coordinate of this Position. 
-   */
-  getY() {
-    return this.#y;
-  }
-
-  /**
-   * Formats and returns the information of this class.
-   * @returns {String} the data of this Position of the form '(x, y)'. 
-   */
-  toString() {
-    return `(${this.#x}, ${this.#y})`;
-  }
-}
-
-// ----------------------------------------------------------------
-
 /**
  * Represents an "enum" representing a Role.
  * At this time, a User's role in NUCarpool can either be a Driver or a Rider.
@@ -931,164 +675,4 @@ class Position {
 const Role = {
   DRIVER: "Driver",
   RIDER: "Rider"
-}
-
-// ----------------------------------------------------------------
-
-/**
- * Represents a Disruption object.
- * A Disruption object has a location, a radius, a delayHours, and a delayMinutes. 
- * Disruptions are circles centered a particular (x,y) point. 
- */
-class Disruption {
-  #location
-  #radius
-  #delayHours
-  #delayMinutes
-
-  /**
-   * The constructor for a Disruption object.
-   * @param {Position} location the coordinates of the center of the Disruption.
-   * @param {number} radius the radius of the circle spanning the Disruption's affected area.
-   * @param {number} delayHours the hour portion of the Disruption's delay time.
-   * @param {number} delayMinutes the minute portion of the Disruption's delay time.
-   */
-  constructor(location, radius, delayHours, delayMinutes) {
-    this.#location = location;
-    this.#radius = radius;
-    this.#delayHours = delayHours;
-    this.#delayMinutes = delayMinutes; 
-  }
-
-  /**
-   * Gets the location of the Disruption. 
-   * @returns {Position} the coordinates of the location representing the center point of this Disruption. 
-   */
-  getLocation() {
-    return this.#location;
-  }
-
-  /**
-   * Gets the radius spanning the Disruption. 
-   * @returns {number} the radius of this Disruption. 
-   */
-  getRadius() {
-    return this.#radius; 
-  }
-
-  /**
-   * Gets the hour portion of the Disruption's duration. 
-   * @returns {number} the delay hours of this Disruption. 
-   */
-  getDelayHours() {
-    return this.#delayHours;
-  }
-
-  /**
-   * Gets the minute portion of the Disruption's duration. 
-   * @returns {number} the delay minutes of this Disruption. 
-   */
-  getDelayMinutes() {
-    return this.#delayMinutes; 
-  }
-
-  /**
-   * Gets the total time of of the Disruption's duration. 
-   * @returns {number} the delay time of this Disruption in minutes. 
-   */
-  getDelayTimeInMinutes() {
-    return (60 * this.#delayHours + this.#delayMinutes); 
-  }
-
-  /**
-   * Formats and retunrs the information in this class. 
-   * @returns {String} the formatted data for this Disruption. 
-   */
-  toString() {
-    return ("Location: " + this.#location.toString() + " ~ " + 
-    "Radius: " + this.#radius + " ~ " + 
-    "Delay Time: " + this.#delayHours + " h " + this.#delayMinutes + " m"
-    );
-  }
-}
-
-// ----------------------------------------------------------------
-
-/**
- * Represents a time object for the NUCarpool app.
- * A time object has a number of hours and minutes. 
- */
-class Time {
-  #hour;
-  #minute;
-
-  constructor(hour, minute) {
-    this.#hour = hour;
-    this.#minute = minute;
-  }
-
-  getHour() {
-    return this.#hour;
-  }
-
-  getMinute() {
-    return this.#minute;
-  }
-
-  /**
-   * Adds the specified number of minutes to the time object,
-   * and reformats as needed.
-   * @param {number} numMinutes
-   */
-  addTime(numMinutes) {
-    const totalMinutes = this.#hour * 60 + this.#minute + numMinutes;
-    this.#hour = Math.floor(totalMinutes / 60) % 24;
-    this.#minute = totalMinutes % 60;
-  }
-
-  /**
-   * Returns true if this time object is before another time object,
-   * and false otherwise.
-   * @param {Time} anotherTime
-   * @returns {boolean}
-   */
-  isBefore(anotherTime) {
-    if (this.#hour < anotherTime.getHour()) {
-      return true;
-    } else if (this.#hour === anotherTime.getHour()) {
-      return this.#minute < anotherTime.getMinute();
-    }
-    return false;
-  }
-
-  /**
-   * Returns true if this time object is after another time object,
-   * and false otherwise.
-   * @param {Time} anotherTime
-   * @returns {boolean}
-   */
-  isAfter(anotherTime) {
-    return !this.isBefore(anotherTime) && !this.isEqual(anotherTime);
-  }
-
-  /**
-   * Calculates the time between this time and another time.
-   * @param {Time} anotherTime
-   * @returns {number} The time difference in minutes as a positive integer.
-   */
-  timeBetween(anotherTime) {
-    const thisTotalMinutes = this.#hour * 60 + this.#minute;
-    const anotherTotalMinutes = anotherTime.getHour() * 60 + anotherTime.getMinute();
-    return Math.abs(thisTotalMinutes - anotherTotalMinutes);
-  }
-
-  /**
-   * Returns a string representation of the time in the format "HH:MM".
-   * @returns {string} the formatted time. 
-   */
-  toString() {
-    const formattedHour = this.#hour.toString().padStart(2, '0');
-    const formattedMinute = this.#minute.toString().padStart(2, '0');
-    return `${formattedHour}:${formattedMinute}`;
-  }
 }
