@@ -21,17 +21,6 @@ This project aims to model a design for a carpooling app between Northeastern St
 
 1. Start the local server: `node index.js` or `npm start`
 2. Access the application in your browser at `http://localhost:3000`
-
-### Design Decisions
-I made several design decisions while creating this, some of which were very inspired by Java and OOD, others from my own work.
-
-- **Encapsulation**: I thought it was a good idea to keep variables private whenever possible and limit user access to variables in the future. Besides your specific requests to limit the `users` Array access, I made the following design decisions:
-  - Making all variables private in the `User`, `Position`, `Disruption`, and `Time` classes and creating `get` methods. I recognize the fact that I created `set` methods in some of my classes, and I don't like that my code ended up turning out that way. My rationale for that choice was that at the moment, I don't see a way for the user of the app to directly access User data, so hopefully that potential security issue is taken care of while making a UI in the future.
-- **Helper methods**: I tried to make my code as readable as possible, and I did so using helper methods. I also used a slightly unconventional approach with methods such as `isNotAnInteger()` and others.
-- **Readability**: More on making my code look nice, I also cared about the output. Instead of using the JSON-like output, I decided to make my own `toString()` method to make the output look easier to read, including formatting times in the "HH:MM" format.
-- **Running and Testing**: I conducted all of my tests in Postman because I liked the UI best and it was easy to use, but I'm sure other API Platforms work just fine. 
-- **Other**
-  - I didn't quite know how to make an "enum" since JavaScript doesn't support that datatype, so I sort of created my own, which you can see in the code. 
  
 ## API Endpoints
 
@@ -89,6 +78,17 @@ Creates a disruption in the transportation system. Requires a JSON object with t
 - `radius` (number): The radius of the disruption area.
 - `delayHours` (number): The delay in hours caused by the disruption.
 - `delayMinutes` (number): The delay in minutes caused by the disruption.
+
+### Design Decisions
+I made several design decisions while creating this, some of which were very inspired by Java and OOD, others from my own work.
+
+- **Encapsulation**: I thought it was a good idea to keep variables private whenever possible and limit user access to variables in the future. Besides your specific requests to limit the `users` Array access, I made the following design decisions:
+  - Making all variables private in the `User`, `Position`, `Disruption`, and `Time` classes and creating `get` methods. I recognize the fact that I created `set` methods in some of my classes, and I don't like that my code ended up turning out that way. My rationale for that choice was that at the moment, I don't see a way for the user of the app to directly access User data, so hopefully that potential security issue is taken care of while making a UI in the future.
+- **Helper methods**: I tried to make my code as readable as possible, and I did so using helper methods. I also used a slightly unconventional approach with methods such as `isNotAnInteger()` and others.
+- **Readability**: More on making my code look nice, I also cared about the output. Instead of using the JSON-like output, I decided to make my own `toString()` method to make the output look easier to read, including formatting times in the "HH:MM" format.
+- **Running and Testing**: I conducted all of my tests in Postman because I liked the UI best and it was easy to use, but I'm sure other API Platforms work just fine. 
+- **Other**
+  - I didn't quite know how to make an "enum" since JavaScript doesn't support that datatype, so I sort of created my own, which you can see in the code. 
 
 ### Future Works
 * Adding a User Interface would be a great idea, similar to what your current model of the NUCarpool App looks like.
